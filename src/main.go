@@ -3,12 +3,32 @@ package main
 import (
 	"fmt"
 
-	"github.com/apex/log"
+	"log"
+
 	"github.com/streadway/amqp"
 )
 
 func main() {
-	server()
+	go client()
+	go server()
+
+	var a string
+	fmt.Scanln(&a)
+}
+
+func client() {
+	conn, ch, q := getQueue()
+	defer conn.Close()
+	defer ch.Close()
+
+	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
+	// Args are... queue string, consumer string, autoAck bool, exclusive bool, noLocal bool, noWait bool, args amqp.Table
+	failOnError(err, "Failed to register a consumer")
+
+	for msg := range msgs {
+		log.Printf("Received message with message: %s", msg.Body)
+	}
+
 }
 
 func server() {
